@@ -1,32 +1,36 @@
-select concat(e.first_name, ' ', e.last_name) as seller, count(s.sales_id), sum(round(s.quantity * p.price, 0)) as income
+with a as ( SELECT 
+  CASE 
+       WHEN age BETWEEN 16 AND 25 THEN '16-25'
+       WHEN age BETWEEN 26 AND 40 THEN '26-40'
+       ELSE '40+'
+  END AS age_category
+        FROM customers)
+SELECT age_category, COUNT(*) AS count
+FROM a 
+group by 1
+order by 1;
+
+select TO_CHAR(sale_date, 'YYYY-MM') AS selling_month, 
+count(customer_id) as total_customers,  
+round(sum(s.quantity * p.price), 0) as income
 from public.sales s
 join employees e 
 on e.employee_id = s.sales_person_id 
 join products p 
 on p.product_id = s.product_id
 group by 1
-order by income desc
-limit 10;
+order by 1;
 
-with a as (select concat(e.first_name, ' ', e.last_name) as seller, sum(s.quantity * p.price) as income
+select CONCAT(c.first_name, ' ', c.last_name) AS customer,
+MIN(s.sale_date) AS first_purchase_date,
+CONCAT(e.first_name, ' ', e.last_name) AS seller
 from public.sales s
+join products p 
+on p.product_id = s.product_id 
+join customers c   
+on c.customer_id = s.customer_id 
 join employees e 
 on e.employee_id = s.sales_person_id 
-join products p 
-on p.product_id = s.product_id
-group by 1), b as (select avg(income) as avg_total from a),
-c as (select seller, avg(income) as avg_sale from a group by 1)
-select seller, round(avg_sale, 0) as average_income
-from c 
-cross join b 
-where avg_sale < avg_total
-order by average_income asc;
-
-select concat(e.first_name, ' ', e.last_name) as seller, to_char(sale_date, 'Day') AS day_of_week,  sum(round(s.quantity * p.price, 0)) as income
-from public.sales s
-join employees e 
-on e.employee_id = s.sales_person_id 
-join products p 
-on p.product_id = s.product_id
-group by 1, 2
-order by extract(ISODOW from max(s.sale_date)), 1;
+where price = 0
+group by 1, 3, c.customer_id 
+order by c.customer_id;
